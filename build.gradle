@@ -1,0 +1,42 @@
+plugins {
+    id 'com.android.application'
+}
+
+android {
+    namespace 'com.volosyukivan'
+    compileSdk 36
+
+    defaultConfig {
+        applicationId 'com.volosyukivan'
+        minSdk 28
+        targetSdk 36
+        versionCode 31
+        versionName '2.4.0'
+    }
+
+    buildFeatures {
+        aidl true
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+
+    sourceSets {
+        main {
+            manifest.srcFile 'AndroidManifest.xml'
+            java.srcDirs = ['src']
+            aidl.srcDirs = ['src/main/aidl']
+            res.srcDirs = ['res']
+            assets.srcDirs = ['html']
+        }
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            shrinkResources false
+        }
+    }
+}
