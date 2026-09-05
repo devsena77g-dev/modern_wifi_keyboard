@@ -1,4 +1,3 @@
-
 /**
  * WiFi Keyboard - Remote Keyboard for Android.
  * Copyright (C) 2011 Ivan Volosyuk
@@ -35,8 +34,6 @@ import java.util.Enumeration;
 import java.util.HashSet;
 import java.util.Set;
 
-import com.volosyukivan.PortUpdateListener.Stub;
-
 public class WiFiKeyboard extends Activity {
     private static final int DEFAULT_PORT = 7777;
 
@@ -72,7 +69,6 @@ public class WiFiKeyboard extends Activity {
                 while (inetAddresses.hasMoreElements()) {
                     InetAddress address = inetAddresses.nextElement();
 
-                    // Browser URL should be an IPv4 address. Skip loopback/link-local.
                     if (!(address instanceof Inet4Address)
                             || address.isLoopbackAddress()
                             || address.isLinkLocalAddress()) {
@@ -221,7 +217,7 @@ public class WiFiKeyboard extends Activity {
                 Debug.d("WiFiKeyboard connected to HttpService.");
 
                 try {
-                    Stub listener = new PortUpdateListener.Stub() {
+                    PortUpdateListener listener = new PortUpdateListener.Stub() {
                         @Override
                         public void portUpdated(int newPort)
                                 throws RemoteException {
@@ -235,7 +231,7 @@ public class WiFiKeyboard extends Activity {
                         }
                     };
 
-                    RemoteKeyboard.Stub remote =
+                    RemoteKeyboard remote =
                             RemoteKeyboard.Stub.asInterface(service);
 
                     remote.setPortUpdateListener(listener);
@@ -287,4 +283,3 @@ public class WiFiKeyboard extends Activity {
         super.onDestroy();
     }
 }
-
