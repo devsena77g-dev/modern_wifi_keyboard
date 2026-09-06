@@ -31,13 +31,13 @@ public class HttpService extends Service {
 
   private final RemoteKeyboard.Stub binder = new RemoteKeyboard.Stub() {
     @Override
-    public void registerRemoteKeyListener(RemoteKeyListener newListener)
+    public void registerKeyListener(RemoteKeyListener newListener)
         throws RemoteException {
       HttpService.this.listener = newListener;
     }
 
     @Override
-    public void unregisterRemoteKeyListener(RemoteKeyListener listener)
+    public void unregisterKeyListener(RemoteKeyListener listener)
         throws RemoteException {
       if (HttpService.this.listener == listener) {
         HttpService.this.listener = null;
@@ -54,10 +54,13 @@ public class HttpService extends Service {
     }
 
     @Override
+    public void startTextEdit(String content) throws RemoteException {
+        // Handle starting text edit if your IME requires it, otherwise leave empty
+    }
+
+    @Override
     public void stopTextEdit() throws RemoteException {
-      if (HttpService.this.listener != null) {
-        HttpService.this.listener.stopTextEdit();
-      }
+        // Handle stopping text edit if your IME requires it, otherwise leave empty
     }
   };
 
