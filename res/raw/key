@@ -206,9 +206,10 @@
       typed_chars++;
     }
 
-    // Send actual text inserted into the browser field directly to Android.
-    // Normal printable keys are allowed to update the textarea; the input
-    // event then sends the resulting text to /input. This also handles paste.
+    // Direct text mode:
+    // Printable text and paste operations are captured by the textarea's
+    // input event and sent as UTF-8 text to /input. Special keys continue
+    // to use the existing /key protocol.
     var text_send_inflight = false;
     var text_send_pending = "";
     var text_send_timer = null;
@@ -219,10 +220,8 @@
       }
 
       if (text_send_pending.length == 0) return;
-
       if (text_send_timer != null) return;
 
-      // A tiny debounce combines fast typing into a small number of requests.
       text_send_timer = setTimeout(function() {
         text_send_timer = null;
 
@@ -230,10 +229,10 @@
 
         var payload = text_send_pending;
         text_send_pending = "";
-
         text_send_inflight = true;
 
         var xhr = new XMLHttpRequest();
+
         xhr.onreadystatechange = function() {
           if (xhr.readyState != 4) return;
 
@@ -242,6 +241,7 @@
           if (xhr.status != 200 || xhr.responseText != "ok") {
             text_send_pending = payload + text_send_pending;
             setDisplayState("failure");
+
             if (text_send_timer == null) {
               text_send_timer = setTimeout(function() {
                 text_send_timer = null;
@@ -262,7 +262,10 @@
         };
 
         xhr.open('POST', "/input", true);
-        xhr.setRequestHeader("Content-Type", "text/plain; charset=UTF-8");
+        xhr.setRequestHeader(
+          "Content-Type",
+          "text/plain; charset=UTF-8"
+        );
         xhr.send(payload);
       }, 20);
     }
@@ -272,57 +275,55 @@
       if (!inp) return;
 
       var value = inp.value;
+      if (value.length == 0) return;
 
-      // Direct mode clears the browser field after successfully queuing
-      // its contents. Since only newly inserted text should be transmitted,
-      // send the current value and clear it immediately.
-      if (value.length > 0) {
-        inp.value = "";
-        send_input_text(value);
-      }
+      // Clear the browser-side buffer immediately. Android receives the
+      // exact text through /input and commits it at the current cursor.
+      inp.value = "";
+      send_input_text(value);
     }
 
-    function up(e) {
-      examine_input();
-      if (!e) e = window.event;
-      return keyevent(e.keyCode, 'U');
-    }
     function down(e) {
       if (!e) e = window.event;
 
-      // F4 is no longer a submit/commit key in direct mode.
-      if (e.keyCode == 115) {
+      var key = e.keyCode;
+
+      // F4 has no special meaning anymore.
+      // Normal text is handled by the browser and the input event above.
+      if (key == 115) {
         return false;
       }
 
-      // Let normal printable keys reach the textarea. The input event
-      // transmits the resulting text through /input.
-      if (!is_special(e.keyCode)) {
-        ignore_next_char = false;
+      // Printable/non-special keys must be allowed into the textarea.
+      if (!is_special(key)) {
         return true;
       }
 
-      return keyevent(e.keyCode, 'D');
+      return keyevent(key, 'D');
     }
 
     function up(e) {
       if (!e) e = window.event;
 
-      if (!is_special(e.keyCode)) {
+      var key = e.keyCode;
+
+      // Printable/non-special keys are already handled by the browser.
+      if (!is_special(key)) {
         return true;
       }
 
-      return keyevent(e.keyCode, 'U');
+      return keyevent(key, 'U');
     }
 
     function press(e) {
-      // Printable characters are handled by the browser's normal text
-      // insertion and captured by the input event.
+      // Printable text is handled by the browser's normal editing engine.
+      // The input event transmits it to Android.
       return true;
     }
 
     function focus_me() {
-      document.getElementById("in").focus();
+      var field = document.getElementById("in");
+      if (field) field.focus();
     }
 
     function setDisplayState(newState) {
@@ -337,19 +338,19 @@
 
       if (newState == "connected") {
         stat.innerHTML = "Connected";
-        stat["color"] = "green";
+        stat.style.color = "green";
         xcomment.innerHTML = "You can type now.";
       } else if (newState == "failure") {
         stat.innerHTML = "Connection problem";
-        stat["color"] = "red";
+        stat.style.color = "red";
         xcomment.innerHTML = "No connection between the phone and computer.";
       } else if (newState == "problem") {
         stat.innerHTML = "Not typing";
-        stat["color"] = "red";
+        stat.style.color = "red";
         xcomment.innerHTML = 'Enable WiFiKeyboard input on you device. <a href="http://code.google.com/p/wifikeyboard/wiki/WiFiKeyboardSettings">Visit help page.</a>';
       } else if (newState == "multi") {
         stat.innerHTML = "Mutiple input";
-        stat["color"] = "red";
+        stat.style.color = "red";
         xcomment.innerHTML = "Typing from multiple browser windows is not supported. Use one browser window.";
       }
     }
