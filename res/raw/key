@@ -1,8 +1,4 @@
 <html>
-<!--
- * WiFi Keyboard - Remote Keyboard for Android.
- * Copyright (C) 2011 Ivan Volosyuk
- -->
 <head>
   <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
   <title>WiFi Keyboard</title>
@@ -104,26 +100,28 @@
       network();
     }
 
-    // Send both Down ('D') and Up ('U') using valid character/key codes that the Java backend accepts
-    function handleKeyPress(e) {
-      if (!e) e = window.event;
-      var ch = (e.charCode !== undefined && e.charCode !== 0) ? e.charCode : (e.keyCode || e.which);
-      
-      if (ch !== 0) {
-        send(ch, 'D');
-        send(ch, 'U');
+    // ABSOLUTE FIX: Extract exact character code from input event text string
+    function handleInput(e) {
+      var text = e.data;
+      if (!text && e.inputType === "deleteContentBackward") {
+        send(8, 'D');
+        send(8, 'U');
+        return;
       }
-      
+      if (text) {
+        for (var i = 0; i < text.length; i++) {
+          var code = text.charCodeAt(i);
+          send(code, 'D');
+          send(code, 'U');
+        }
+      }
       var x = document.getElementById("in");
       if (x) x.value = "";
-      if (e.preventDefault) e.preventDefault();
-      return false;
     }
 
     function handleKeyDown(e) {
       if (!e) e = window.event;
       var code = e.keyCode || e.which;
-      
       if (code === 8 || code === 13) { // Backspace or Enter
         send(code, 'D');
         send(code, 'U');
@@ -144,7 +142,7 @@
       if (newState == "connected") {
         stat.innerHTML = "Connected";
         stat.style.color = "green";
-        xcomment.innerHTML = "Instant D/U streaming active.";
+        xcomment.innerHTML = "Direct Input Event Sync Active.";
       } else if (newState == "failure") {
         stat.innerHTML = "Connection problem";
         stat.style.color = "red";
@@ -156,7 +154,8 @@
       var x = document.getElementById("in");
       if (x) {
         x.focus();
-        x.onkeypress = handleKeyPress;
+        // Use modern input event listener to capture real typed letters accurately
+        x.addEventListener("input", handleInput);
         x.onkeydown = handleKeyDown;
         x.value = "";
         x.style.backgroundColor = "#f1f1ed";
@@ -191,14 +190,14 @@
 <h1>WiFi&nbsp;Keyboard</h1>
   <table border="0"><tbody><tr><td>
   <h2>Mode:</h2>
-  <div class="mode"><font color="green"><b>Instant D/U Streaming Mode (Active)</b></font></div>
+  <div class="mode"><font color="green"><b>Direct Input Event Mode (Active)</b></font></div>
   </td></tr></tbody></table>
 </td>
 <td width="450">
   <table border="0"><tbody><tr><td>
   <h2>Status Info:</h2>
   <ul>
-  <li><font color="green">Java backend D/U command mapping enabled</font></li>
+  <li><font color="green">Real character mapping enforced</font></li>
   <li>F4 bypassed</li>
   </ul>
   </td></tr></tbody></table>
