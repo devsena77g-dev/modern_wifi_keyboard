@@ -13,6 +13,8 @@
     <uses-permission android:name="android.permission.INTERNET"/>
     <uses-permission android:name="android.permission.WAKE_LOCK"/>
     <uses-permission android:name="android.permission.READ_PHONE_STATE"/>
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC"/>
 
     <supports-screens
         android:anyDensity="true"
@@ -73,6 +75,7 @@
 
         <service 
             android:name=".HttpService"
+            android:foregroundServiceType="dataSync"
             android:exported="false"/>
 
         <receiver 
