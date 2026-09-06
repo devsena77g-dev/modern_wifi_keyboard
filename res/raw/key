@@ -118,7 +118,6 @@
       network();
     }
 
-    // Direct Instant Key Handlers (Bypassing legacy buffering)
     function handleKeyDown(e) {
       if (!e) e = window.event;
       var code = e.keyCode || e.which;
@@ -134,11 +133,13 @@
       }
     }
 
-    function handleKeyPress(e) {
+    function handlepress(e) {
       if (!e) e = window.event;
-      var ch = e.charCode || e.keyCode;
+      // Correct character code mapping to grab proper text values instead of raw scan codes
+      var ch = (e.charCode !== undefined && e.charCode !== 0) ? e.charCode : (e.keyCode || e.which);
+      
       if (ch !== 0 && ch !== 8 && ch !== 13) {
-        send(ch, 'C'); // Stream character code instantly
+        send(ch, 'C'); 
       }
       var x = document.getElementById("in");
       if (x) x.value = "";
@@ -172,14 +173,13 @@
       if (x) {
         x.focus();
         x.onkeydown = handleKeyDown;
-        x.onkeypress = handleKeyPress;
+        x.onkeypress = handlepress;
         x.value = "";
         x.style.backgroundColor = "#f1f1ed";
       }
       
       send(1024, 'D');
 
-      // Continuous focus lock loop to keep typing active seamlessly
       setInterval(function() {
         var inputEl = document.getElementById("in");
         if (inputEl && document.activeElement !== inputEl) {
@@ -191,35 +191,12 @@
 </script>
 <link rel="icon" type="image/png" href="/icon.png" />
 <style type="text/css">
-   h1 {
-    font-size: 30px;
-   } 
-   h2 {
-    font-size: 20px;
-   }
-   div {
-    font-size: 15px;
-    padding: 3px;
-   }
-   div.footer {
-    font-family: arial, serif;
-    font-size: 20px;
-    text-align: right;
-   }
-   body {
-    color:#000000;
-    background-color:#f1f1ed;
-    margin:0px;
-    overflow:auto;
-   }
-   table.main {
-      width:800px;
-      margin-top:0px;
-      margin-bottom:0px;
-      background-color:#ffffff;
-      padding:15px;
-      height: 100%;
-   }
+   h1 { font-size: 30px; } 
+   h2 { font-size: 20px; }
+   div { font-size: 15px; padding: 3px; }
+   div.footer { font-family: arial, serif; font-size: 20px; text-align: right; }
+   body { color:#000000; background-color:#f1f1ed; margin:0px; overflow:auto; }
+   table.main { width:800px; margin-top:0px; margin-bottom:0px; background-color:#ffffff; padding:15px; height: 100%; }
 </style>
 </head>
 <body id="myBody">
@@ -227,7 +204,6 @@
 <tbody>
 <tr valign="top">
 <td class="main" width="450">
-<!-- Main Window -->
 <h1>WiFi&nbsp;Keyboard</h1>
   <table border="0"><tbody><tr><td>
   <h2>Mode:</h2>
@@ -239,12 +215,11 @@
   <h2>Status Info:</h2>
   <ul>
   <li><font color="green">F4 requirement bypassed</font></li>
-  <li>Direct keystroke streaming enabled</li>
+  <li>Direct character streaming enabled</li>
   </ul>
   </td></tr></tbody></table>
 </td>
 <td align="right" width="200">
-<!-- Side bar -->
   <table border="1" cellpadding="20"><tbody><tr><td>
   <h2>Status: <font color="black" id="status">Connecting...</font></h2>
   <div id="comment"></div>
