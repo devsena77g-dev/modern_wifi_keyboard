@@ -2,20 +2,6 @@
 <!--
  * WiFi Keyboard - Remote Keyboard for Android.
  * Copyright (C) 2011 Ivan Volosyuk
- *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
-
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
-
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  -->
 <head>
   <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
@@ -118,33 +104,31 @@
       network();
     }
 
-    function handleKeyDown(e) {
+    // Send both Down ('D') and Up ('U') using valid character/key codes that the Java backend accepts
+    function handleKeyPress(e) {
       if (!e) e = window.event;
-      var code = e.keyCode || e.which;
-      
-      if (code === 8) { // Backspace
-        send(8, 'D');
-        send(8, 'U');
-        if (e.preventDefault) e.preventDefault();
-      } else if (code === 13) { // Enter
-        send(13, 'D');
-        send(13, 'U');
-        if (e.preventDefault) e.preventDefault();
-      }
-    }
-
-    function handlepress(e) {
-      if (!e) e = window.event;
-      // Correct character code mapping to grab proper text values instead of raw scan codes
       var ch = (e.charCode !== undefined && e.charCode !== 0) ? e.charCode : (e.keyCode || e.which);
       
-      if (ch !== 0 && ch !== 8 && ch !== 13) {
-        send(ch, 'C'); 
+      if (ch !== 0) {
+        send(ch, 'D');
+        send(ch, 'U');
       }
+      
       var x = document.getElementById("in");
       if (x) x.value = "";
       if (e.preventDefault) e.preventDefault();
       return false;
+    }
+
+    function handleKeyDown(e) {
+      if (!e) e = window.event;
+      var code = e.keyCode || e.which;
+      
+      if (code === 8 || code === 13) { // Backspace or Enter
+        send(code, 'D');
+        send(code, 'U');
+        if (e.preventDefault) e.preventDefault();
+      }
     }
 
     function setDisplayState(newState) {
@@ -160,11 +144,11 @@
       if (newState == "connected") {
         stat.innerHTML = "Connected";
         stat.style.color = "green";
-        xcomment.innerHTML = "Instant typing active. No F4 required.";
+        xcomment.innerHTML = "Instant D/U streaming active.";
       } else if (newState == "failure") {
         stat.innerHTML = "Connection problem";
         stat.style.color = "red";
-        xcomment.innerHTML = "No connection between the phone and computer.";
+        xcomment.innerHTML = "Connection lost.";
       }
     }
 
@@ -172,8 +156,8 @@
       var x = document.getElementById("in");
       if (x) {
         x.focus();
+        x.onkeypress = handleKeyPress;
         x.onkeydown = handleKeyDown;
-        x.onkeypress = handlepress;
         x.value = "";
         x.style.backgroundColor = "#f1f1ed";
       }
@@ -207,15 +191,15 @@
 <h1>WiFi&nbsp;Keyboard</h1>
   <table border="0"><tbody><tr><td>
   <h2>Mode:</h2>
-  <div class="mode"><font color="green"><b>Instant Typing Mode (Active)</b></font></div>
+  <div class="mode"><font color="green"><b>Instant D/U Streaming Mode (Active)</b></font></div>
   </td></tr></tbody></table>
 </td>
 <td width="450">
   <table border="0"><tbody><tr><td>
   <h2>Status Info:</h2>
   <ul>
-  <li><font color="green">F4 requirement bypassed</font></li>
-  <li>Direct character streaming enabled</li>
+  <li><font color="green">Java backend D/U command mapping enabled</font></li>
+  <li>F4 bypassed</li>
   </ul>
   </td></tr></tbody></table>
 </td>
