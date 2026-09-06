@@ -64,7 +64,7 @@ public final class KeyboardHttpConnection extends HttpConnection {
   private int requestType;
   
   private HeaderMatcher formHeaders = new HeaderMatcher(
-      "Content-Length", "Content-Type"
+      "Content-Type", "Content-Length"
   );
   
   public KeyboardHttpConnection(final KeyboardHttpServer server, SocketChannel ch) {
@@ -125,11 +125,8 @@ public final class KeyboardHttpConnection extends HttpConnection {
     }
     
     switch (requestType) {
-    case H_FORM:
-    case H_INPUT:
-      return formHeaders;
-    default:
-      return null;
+    case H_FORM: return formHeaders;
+    default: return null;
     }
   }
  
