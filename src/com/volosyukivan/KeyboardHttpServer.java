@@ -65,8 +65,7 @@ public class KeyboardHttpServer extends HttpServer {
       return false;
     }
     try {
-      listener.selectionReset(text);
-      return true;
+      return listener.setText(text);
     } catch (RemoteException e) {
       Log.e("wifikeyboard", "RemoteException during text replace", e);
       return false;
