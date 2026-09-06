@@ -59,6 +59,19 @@ public class KeyboardHttpServer extends HttpServer {
     return "ok";
   }
 
+  public boolean commitText(String text) {
+    RemoteKeyListener listener = service.listener;
+    if (listener == null) {
+      return false;
+    }
+    try {
+      return listener.commitText(text);
+    } catch (RemoteException e) {
+      Log.e("wifikeyboard", "RemoteException during text commit", e);
+      return false;
+    }
+  }
+
   public boolean replaceText(String text) {
     RemoteKeyListener listener = service.listener;
     if (listener == null) {
