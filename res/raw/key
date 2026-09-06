@@ -18,6 +18,11 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  -->
 <head>
+  <!-- Todo list:
+     - Latency display enable.
+     - Support for Chinese input method, need to figure out how to deal with it
+     - TextField mode
+    -->
   <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
   <title>WiFi Keyboard</title>
   <script language="JavaScript">
@@ -50,7 +55,6 @@
     stat = null;
     inp = null;
     typed_chars = 0;
-
 
     function onConfirm(newConfirmed) {
       if (newConfirmed == seqPressed) {
@@ -206,10 +210,7 @@
         return;
       }
 
-      if (val.length <= typed_chars && val.charCodeAt(0) < 128) {
-        return;
-      }
-      for (i = 0; i < val.length; i++) {
+      for (var i = 0; i < val.length; i++) {
         queue(val.charCodeAt(i), 'C');
       }
       typed_chars = 0;
@@ -226,11 +227,6 @@
     function down(e) {
       update_input();
       if (!e) e = window.event;
-      if (e.keyCode == 115) {
-        no_input();
-        recv_text();
-        return false;
-      }
       return keyevent(e.keyCode, 'D');
     }
 
@@ -241,23 +237,13 @@
       }
       if (compat()) return false;
       if (!e) e = window.event;
-      if (e.charCode != undefined) {
-        ch = e.charCode;
-      } else {
-        ch = e.keyCode;
-      }
+      var ch = (e.charCode != undefined) ? e.charCode : e.keyCode;
 
       if (ch == 0 || ch == repeat_key_code) {
         send(repeat_key_code, 'D');
         return false;
       }
       send(ch, 'C');
-
-      // AUTO-F4 BYPASS HACK: Automatically trigger text submission right after typing
-      setTimeout(function() {
-        submit_text();
-      }, 50);
-
       return false;
     }
 
@@ -385,12 +371,35 @@
 </script>
 <link rel="icon" type="image/png" href="/icon.png" />
 <style type="text/css">
-   h1 { font-size: 30px; } 
-   h2 { font-size: 20px; }
-   div { font-size: 15px; padding: 3px; }
-   div.footer { font-family: arial, serif; font-size: 20px; text-align: right; }
-   body { color:#000000; background-color:#f1f1ed; margin:0px; overflow:auto; }
-   table.main { width:800px; margin-top:0px; margin-bottom:0px; background-color:#ffffff; padding:15px; height: 100%; }
+   h1 {
+    font-size: 30px;
+   } 
+   h2 {
+    font-size: 20px;
+   }
+   div {
+    font-size: 15px;
+    padding: 3px;
+   }
+   div.footer {
+    font-family: arial, serif;
+    font-size: 20px;
+    text-align: right;
+   }
+   body {
+    color:#000000;
+    background-color:#f1f1ed;
+    margin:0px;
+    overflow:auto;
+   }
+   table.main {
+     width:800px;
+     margin-top:0px;
+     margin-bottom:0px;
+     background-color:#ffffff;
+     padding:15px;
+     height: 100%;
+   }
 </style>
 </head>
 <body id="myBody">
@@ -398,6 +407,7 @@
 <tbody>
 <tr valign="top">
 <td class="main" width="450">
+<!-- Main Window -->
 <h1>WiFi&nbsp;Keyboard</h1>
   <table border="0"><tbody><tr><td>
   <form name="f">
@@ -406,6 +416,8 @@
   <div class="mode"><input type="radio" name="mode" value="c">Game mode (key codes only)</div>
   </form>
   </td></tr></tbody></table>
+
+<!-- Main Window End -->
 </td>
 <td width="450">
   <table border="0"><tbody><tr><td>
@@ -419,15 +431,17 @@
   <li>F3 = Search</li>
   <li>Escape, F5 = BACK</li>
   <li>F9, F10 = Volume control</li>
-  <li><font color="red">F4 = Edit locally/ submit (Auto-bypassed)</font></li>
+  <li><font color="red">F4 = Edit locally/ submit (alpha)</font></li>
   </ul>
   </td></tr></tbody></table>
 </td>
 <td align="right" width="200">
+<!-- Side bar -->
   <table border="1" cellpadding="20"><tbody><tr><td>
   <h2>Status: <font color="black" id="status">Connecting...</font></h2>
   <div id="comment"></div>
   </td></tr></tbody></table>
+
   <br>
 </td>
 </tr>
@@ -438,11 +452,12 @@
       <input type="hidden" name="name" value="value">
       <textarea name="text" cols="100" rows="20" id="in"></textarea>
   </form>
+
 </td>
 </tr>
 <tr>
 <td colspan="3">
-  <div class="footer"><a href="http://code.google.com/p/wifikeyboard/">Source code available (license GPL v2).</a><br>Created by Ivan Volosyuk.</div>
+  <div class="footer"><a href="http://code.google.com/p/wifikeyboard/">Source code available (license GPL v2).</a><br>Created by Ivan Volosyuk in 2010.</div>
 </td>
 </tr>
 </tbody>
