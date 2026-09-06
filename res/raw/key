@@ -1,31 +1,6 @@
 <html>
-<!--
- * WiFi Keyboard - Remote Keyboard for Android.
- * Copyright (C) 2011 Ivan Volosyuk
- *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
-
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
-
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
- -->
 <head>
-  <!-- Todo list:
-     - Latency display enable.
-     - Support for Chinese input method, need to figure out how to deal with it
-     - TextField mode
-     - 
-
-    -->
-  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
   <title>WiFi Keyboard</title>
   <script language="JavaScript">
    if (typeof XMLHttpRequest == "undefined")
@@ -282,16 +257,13 @@
       }
     }
 
-    function up(e) {
-      examine_input();
-      if (!e) e = window.event;
-      return keyevent(e.keyCode, 'U');
-    }
     function down(e) {
       if (!e) e = window.event;
 
-      // F4 is no longer a submit/commit key in direct mode.
-      if (e.keyCode == 115) {
+      // Replaced F4 (keyCode 115) with Alt + A (e.altKey and keyCode 65)
+      if (e.altKey && (e.keyCode == 65 || e.keyCode == 97)) {
+        no_input();
+        recv_text();
         return false;
       }
 
@@ -410,7 +382,8 @@
         var x = document.getElementById("in");
         x.onkeydown = function(e) {
             if (!e) e = window.event;
-            if (e.keyCode == 115) {
+            // Replaced F4 with Alt + A here as well for local input mode toggle
+            if (e.altKey && (e.keyCode == 65 || e.keyCode == 97)) {
                 submit_text();
                 no_input();
                 return false;
@@ -512,7 +485,6 @@
 <tbody>
 <tr valign="top">
 <td class="main" width="450">
-<!-- Main Window -->
 <h1>WiFi&nbsp;Keyboard</h1>
   <table border="0"><tbody><tr><td cellspacing="50" cellpadding="50">
   <form name="f">
@@ -522,7 +494,6 @@
   </form>
   </td></tr></tbody></table>
 
-<!-- Main Window End -->
 </td>
 <td width="450">
   <table border="0"><tbody><tr><td cellspacing="50" cellpadding="50">
@@ -538,12 +509,11 @@
   <li>F3 = Search</li>
   <li>Escape, F5 = BACK</li>
   <li>F9, F10 = Volume control</li>
-  <li><font color="green">Text is sent directly; F4 is no longer required.</font></li>
+  <li><font color="red">Alt + A = Edit locally/ submit (alpha)</font></li>
   </ul>
   </td></tr></tbody></table>
 </td>
 <td align="right" width="200">
-<!-- Side bar -->
   <table border="1" cellpadding="20"><tbody><tr><td cellspacing="50" cellpadding="50">
   <h2>Status: <font color="black" id="status">Connecting...</font></h2>
   <div id="comment"></div>
@@ -565,8 +535,6 @@
 <tr>
 <td colspan="3">
   <div class="footer"><a href="http://code.google.com/p/wifikeyboard/">Source code available (license GPL v2).</a><br>Created by Ivan Volosyuk in 2010.</div>
-<!-- <div id="keys">Debug: key presses:</div> -->
-<!-- <div id="debug">New event placeholder.</div> -->
 <td>
 </tr>
 </tbody>
