@@ -1,12 +1,3 @@
-/**
- * WiFi Keyboard - Remote Keyboard for Android.
- * Copyright (C) 2011 Ivan Volosyuk
- *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
- */
 package com.volosyukivan;
 
 import java.io.InputStream;
@@ -74,7 +65,7 @@ public class KeyboardHttpServer extends HttpServer {
       return false;
     }
     try {
-      listener.replaceText(text);
+      listener.selectionReset(text);
       return true;
     } catch (RemoteException e) {
       Log.e("wifikeyboard", "RemoteException during text replace", e);
@@ -97,7 +88,11 @@ public class KeyboardHttpServer extends HttpServer {
 
   public String getPage() {
     try {
-      InputStream is = service.getResources().openRawResource(R.raw.key);
+      int resId = service.getResources().getIdentifier("key", "raw", service.getPackageName());
+      if (resId == 0) {
+        return "Error loading page: raw/key not found";
+      }
+      InputStream is = service.getResources().openRawResource(resId);
       byte[] buffer = new byte[is.available()];
       is.read(buffer);
       is.close();
