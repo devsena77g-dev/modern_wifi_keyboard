@@ -20,7 +20,6 @@ package com.volosyukivan;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.UnsupportedEncodingException;
 import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
 import java.util.ArrayList;
@@ -186,22 +185,13 @@ public final class KeyboardHttpConnection extends HttpConnection {
 
   private ByteBuffer onDefaultRequest() {
     String page = server.getPage();
-    try {
-      byte[] content = page.getBytes(java.nio.charset.StandardCharsets.UTF_8);
-      server.sendKey(KeyboardHttpServer.FOCUS, true);
-      return sendData("text/html; charset=UTF-8", content, content.length);
-    } catch (UnsupportedEncodingException e) {
-      throw new RuntimeException("UTF-8 unsupported");
-    }
+    byte[] content = page.getBytes(java.nio.charset.StandardCharsets.UTF_8);
+    server.sendKey(KeyboardHttpServer.FOCUS, true);
+    return sendData("text/html; charset=UTF-8", content, content.length);
   }
 
   private ByteBuffer onFormRequest() {
-    String newText = "";
-    try {
-      newText = new String(formData, 0, formDataLength, java.nio.charset.StandardCharsets.UTF_8);
-    } catch (UnsupportedEncodingException e) {
-      Log.e("wifikeyboard", "UTF-8", e);
-    }
+    String newText = new String(formData, 0, formDataLength, java.nio.charset.StandardCharsets.UTF_8);
     boolean success = server.replaceText(newText);
     // FIXME: use cached value
     byte[] resp = (success ? "ok" : "fail").getBytes(java.nio.charset.StandardCharsets.UTF_8);
@@ -210,16 +200,17 @@ public final class KeyboardHttpConnection extends HttpConnection {
 
   private ByteBuffer onTextRequest() {
     byte[] text = null;
-    try {
-      if (server != null) {
-        try {
-          text = ((String)(server.getText())).getBytes(java.nio.charset.StandardCharsets.UTF_8);
-        } catch (NullPointerException e) {
-          Log.e("wifikeyboard", "no text", e);
+    if (server != null) {
+      try {
+        String serverText = server.getText();
+        if (serverText != null) {
+            text = serverText.getBytes(java.nio.charset.StandardCharsets.UTF_8);
         }
+      } catch (NullPointerException e) {
+        Log.e("wifikeyboard", "no text", e);
       }
-    } catch (UnsupportedEncodingException e) {
     }
+    
     if (text == null) {
       // FIXME: error handling?
       text = new byte[0];
@@ -229,7 +220,7 @@ public final class KeyboardHttpConnection extends HttpConnection {
 
   private ByteBuffer onKeyRequest() {
     String response = server.processKeyRequest(
-        new String(request, cmdEnd + 1, queryEnd));
+        new String(request, cmdEnd + 1, queryEnd, java.nio.charset.StandardCharsets.UTF_8));
 //    Log.d("wifikeyboard", "response = " + response);
     Map<String, ByteBuffer> cache = responseCache.get();
     if (cache == null) {
