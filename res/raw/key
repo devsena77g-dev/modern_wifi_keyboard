@@ -32,40 +32,30 @@
        throw new Error("This browser does not support XMLHttpRequest.");
    };
 
-    ignore_next_char = false;
-    repeat_key_code = "-1";
-
     seqConfirmed = 12345;
     seqPressed = seqConfirmed;
-    events=Object();
+    events = Object();
     num_inflight = 0;
     num_delayed = 0;
-    latency = 0;
-    latency2 = 0;
-    latencyTime = 0;
-    latencyTime2 = 0;
     displayState = "loading";
     stat = null;
-    inp = null;
-    typed_chars = 0;
-
 
     function onConfirm(newConfirmed) {
       if (newConfirmed == seqPressed) {
-        events=Object();
+        events = Object();
       }
       if (newConfirmed <= seqConfirmed) return;
       for (i = seqConfirmed; i < newConfirmed; i++) {
         events[i] = undefined;
-	seqConfirmed = newConfirmed;
       }
+      seqConfirmed = newConfirmed;
       network();
     }
 
     function queue(code, mode) {
       ev = mode + code;
       events[seqPressed] = ev;
-      seqPressed += 1
+      seqPressed += 1;
     }
 
     function send(code, mode) {
@@ -80,35 +70,29 @@
       var finished = false;
       num_inflight += 1;
       xhr.onreadystatechange = function() {
-	if (aborted) return;
-	if (xhr.readyState != 4) return;
-	num_inflight -= 1;
-	finished = true;
+        if (aborted) return;
+        if (xhr.readyState != 4) return;
+        num_inflight -= 1;
+        finished = true;
 
         if (xhr.status != 200) {
-	  setDisplayState("failure")
-	  if (num_delayed == 0) {
-	    num_delayed = 1;
+          setDisplayState("failure");
+          if (num_delayed == 0) {
+            num_delayed = 1;
             setTimeout("networkDelayed();", 2000);
-	  }
-	  return;
+          }
+          return;
         }
-        if (xhr.responseText == "problem") {
-	  setDisplayState("problem");
-        } else if (xhr.responseText == "multi") {
-	  setDisplayState("multi");
-        } else {
-	  setDisplayState("connected");
-        }
-	onConfirm(sentNewConfirmed);
+        setDisplayState("connected");
+        onConfirm(sentNewConfirmed);
       }
       setTimeout(function() {
         if (finished) return;
-	aborted = true;
-	xhr.abort();
-	num_inflight -= 1;
-	setDisplayState("failure");
-	makeXhr();
+        aborted = true;
+        xhr.abort();
+        num_inflight -= 1;
+        setDisplayState("failure");
+        makeXhr();
       }, 3000);
       xhr.open('GET', "/key?" + sentNewConfirmed + "," + data, true);
       xhr.send(null);
@@ -126,8 +110,7 @@
       for (i = seqConfirmed + 1; i < newConfirmed; i++) {
         data = events[i] + "," + data;
       }
-
-      var xhr = makeXhr();
+      makeXhr();
     }
 
     function networkDelayed() {
@@ -135,102 +118,32 @@
       network();
     }
 
-    function compat() {
-      return !document.f.mode[0].checked;
+    // Direct Instant Key Handlers (Bypassing legacy buffering)
+    function handleKeyDown(e) {
+      if (!e) e = window.event;
+      var code = e.keyCode || e.which;
+      
+      if (code === 8) { // Backspace
+        send(8, 'D');
+        send(8, 'U');
+        if (e.preventDefault) e.preventDefault();
+      } else if (code === 13) { // Enter
+        send(13, 'D');
+        send(13, 'U');
+        if (e.preventDefault) e.preventDefault();
+      }
     }
 
-    function is_special(code) {
-      if (code <= 40) {
-        if (code >= 33) return true;
-	if (code == 8 || code == 9 || code == 13 || code == 27) return true;
-	if (code >= 16 && code <= 20) return true;
-      } else {
-        if (code == 42 || code == 45 || code == 46 || code == 93 || code == 145) return true;
-	if (code >= 112 && code <= 123) return true;
+    function handleKeyPress(e) {
+      if (!e) e = window.event;
+      var ch = e.charCode || e.keyCode;
+      if (ch !== 0 && ch !== 8 && ch !== 13) {
+        send(ch, 'C'); // Stream character code instantly
       }
+      var x = document.getElementById("in");
+      if (x) x.value = "";
+      if (e.preventDefault) e.preventDefault();
       return false;
-    }
-    function keyevent(key, mode) {
-      if (compat()) {
-        ignore_next_char = mode == 'D';
-        repeat_key_code = key;
-        send(key, mode);
-	return false;
-      }
-      if (is_special(key)) {
-        ignore_next_char = mode == 'D';
-        repeat_key_code = key;
-        send(key, mode);
-	return false;
-      }
-      ignore_next_char = false;
-      return true;
-    }
-
-    function update_input() {
-      typed_chars++;
-    }
-
-    function examine_input() {
-      if (inp == null) {
-        inp = document.getElementById("in");
-      }
-      if (inp == null) {
-        typed_chars = 0;
-        return;
-      }
-      var val = inp.value;
-      if (val.length == 0) {
-	typed_chars = 0;
-        return;
-      }
-
-      if (val.length <= typed_chars
-        && val.charCodeAt(0) < 128) {
-	return;
-      }
-      for (i = 0; i < val.length; i++) {
-        queue(val.charCodeAt(i), 'C');
-      }
-      typed_chars = 0;
-      inp.value = "";
-      network();
-    }
-
-    function up(e) {
-      examine_input();
-      if (!e) e = window.event;
-      return keyevent(e.keyCode, 'U');
-    }
-    function down(e) {
-      update_input();
-      if (!e) e = window.event;
-      // Bypassed F4 local toggle check so typing is instant
-      return keyevent(e.keyCode, 'D');
-    }
-    function press(e) {
-      if (ignore_next_char) {
-         ignore_next_char = false;
-         return false;
-      }
-      if (compat()) return false;
-      if (!e) e = window.event;
-      if (e.charCode != undefined) {
-        ch = e.charCode;
-      } else {
-        ch = e.keyCode;
-      }
-
-      if (ch == 0 || ch == repeat_key_code) {
-        send(repeat_key_code, 'D');
-        return false;
-      }
-      send(ch, 'C');
-      return false;
-    }
-    function focus_me() {
-      var el = document.getElementById("in");
-      if (el) el.focus();
     }
 
     function setDisplayState(newState) {
@@ -245,75 +158,34 @@
 
       if (newState == "connected") {
         stat.innerHTML = "Connected";
-        stat["color"] = "green";
-        xcomment.innerHTML = "You can type now.";
+        stat.style.color = "green";
+        xcomment.innerHTML = "Instant typing active. No F4 required.";
       } else if (newState == "failure") {
         stat.innerHTML = "Connection problem";
-        stat["color"] = "red";
+        stat.style.color = "red";
         xcomment.innerHTML = "No connection between the phone and computer.";
-      } else if (newState == "problem") {
-        stat.innerHTML = "Not typing";
-        stat["color"] = "red";
-        xcomment.innerHTML = 'Enable WiFiKeyboard input on you device. <a href="http://code.google.com/p/wifikeyboard/wiki/WiFiKeyboardSettings">Visit help page.</a>';
-      } else if (newState == "multi") {
-        stat.innerHTML = "Mutiple input";
-        stat["color"] = "red";
-        xcomment.innerHTML = "Typing from multiple browser windows is not supported. Use one browser window.";
       }
     }
 
-    function direct_input() {
-        var x = document.getElementById("in");
-        if (!x) return;
-        x.onkeydown = down;
-        x.onkeyup = up;
-        x.onkeypress = press;
-        
-        // Continuously lock focus so clicking away refocuses instantly
-        window.onblur = function() {
-            send(1024,'D');
-            focus_me();
-        }
-        window.onfocus = focus_me;
-        window.onmouseup = function() {
-            setTimeout('examine_input(); focus_me();', 10);
-        };
-        window.onmouseover = function() {
-            setTimeout('examine_input();', 10);
-        };
-        x.style.backgroundColor = "#f1f1ed";
-        x.value = "";
-    }
-
     function loadFinished() {
-      focus_me();
-      send(1024, 'D');
-      direct_input();
+      var x = document.getElementById("in");
+      if (x) {
+        x.focus();
+        x.onkeydown = handleKeyDown;
+        x.onkeypress = handleKeyPress;
+        x.value = "";
+        x.style.backgroundColor = "#f1f1ed";
+      }
       
-      // Force constant focus loop to avoid losing typing focus
-      setInterval(function() {
-          var activeEl = document.activeElement;
-          var inputEl = document.getElementById("in");
-          if (inputEl && activeEl !== inputEl) {
-              inputEl.focus();
-          }
-      }, 500);
+      send(1024, 'D');
 
-      (function() {
-    	     var wf = document.createElement('script');
-    	     wf.src = ('https:' == document.location.protocol ? 'https' : 'http') +
-    	         '://ajax.googleapis.com/ajax/libs/webfont/1/webfont.js';
-    	     wf.type = 'text/javascript';
-    	     wf.async = 'true';
-    	     wf.onload = function() {
-    	         WebFont.load({
-    	             google: {
-    	               families: [ 'Cantal', 'Yanone Kaffeesatz', 'Droid Sans' ]
-    	          }});
-    	     }
-    	     var s = document.getElementsByTagName('script')[0];
-    	     s.parentNode.insertBefore(wf, s);
-    	   })();
+      // Continuous focus lock loop to keep typing active seamlessly
+      setInterval(function() {
+        var inputEl = document.getElementById("in");
+        if (inputEl && document.activeElement !== inputEl) {
+          inputEl.focus();
+        }
+      }, 300);
     }
     window.onload = loadFinished;
 </script>
@@ -322,29 +194,18 @@
    h1 {
     font-size: 30px;
    } 
-   .wf-active h1 {
-    font-family: 'Cantal', arial, serif;
-   }
    h2 {
     font-size: 20px;
-   }
-   .wf-active h2 {
-    font-family: 'Yanone Kaffeesatz', arial, serif; 
    }
    div {
     font-size: 15px;
     padding: 3px;
    }
-   .wf-active div {
-    font-family: 'Droid Sans', arial, serif;
-   }
-
    div.footer {
     font-family: arial, serif;
     font-size: 20px;
     text-align: right;
    }
-   
    body {
     color:#000000;
     background-color:#f1f1ed;
@@ -352,14 +213,12 @@
     overflow:auto;
    }
    table.main {
-     width:800px;
-     margin-top:0px;
-     margin-bottom:0px;
-     background-color:#ffffff;
-     padding:15px;
-     background-image:url('bg.gif');
-     background-repeat:repeat-x;
-     height: 100%;
+      width:800px;
+      margin-top:0px;
+      margin-bottom:0px;
+      background-color:#ffffff;
+      padding:15px;
+      height: 100%;
    }
 </style>
 </head>
@@ -370,58 +229,42 @@
 <td class="main" width="450">
 <!-- Main Window -->
 <h1>WiFi&nbsp;Keyboard</h1>
-  <table border="0"><tbody><tr><td cellspacing="50" cellpadding="50">
-  <form name="f">
-  <h2>Keyboard mode:</h2>
-  <div class="mode"><input type="radio" name="mode" value="i" checked>International keyboard</div>
-  <div class="mode"><input type="radio" name="mode" value="c">Game mode (key codes only)</div>
-  </form>
+  <table border="0"><tbody><tr><td>
+  <h2>Mode:</h2>
+  <div class="mode"><font color="green"><b>Instant Typing Mode (Active)</b></font></div>
   </td></tr></tbody></table>
-
-<!-- Main Window End -->
 </td>
 <td width="450">
-  <table border="0"><tbody><tr><td cellspacing="50" cellpadding="50">
-  <tr>
-  <td>
-  <h2>Special keys:</h2>
+  <table border="0"><tbody><tr><td>
+  <h2>Status Info:</h2>
   <ul>
-  <li>Shift = Shift</li>
-  <li>Alt = Alt</li>
-  <li>Arrows = DPAD Arrows</li>
-  <li>Insert, F1 = DPAD Center</li>
-  <li>F2 = Menu</li>
-  <li>F3 = Search</li>
-  <li>Escape, F5 = BACK</li>
-  <li>F9, F10 = Volume control</li>
-  <li><font color="green">F4 = Disabled (Instant Typing Active)</font></li>
+  <li><font color="green">F4 requirement bypassed</font></li>
+  <li>Direct keystroke streaming enabled</li>
   </ul>
   </td></tr></tbody></table>
 </td>
 <td align="right" width="200">
 <!-- Side bar -->
-  <table border="1" cellpadding="20"><tbody><tr><td cellspacing="50" cellpadding="50">
+  <table border="1" cellpadding="20"><tbody><tr><td>
   <h2>Status: <font color="black" id="status">Connecting...</font></h2>
   <div id="comment"></div>
   </td></tr></tbody></table>
-
   <br>
 </td>
 </tr>
 <tr>
 <td colspan="3">
-  <h2>Android input (type instantly here):</h2>
+  <h2>Android input (Type here instantly):</h2>
   <form method="post" action="/form">
       <input type="hidden" name="name" value="value">
       <textarea name="text" cols="100" rows="20" id="in"></textarea>
   </form>
-
 </td>
 </tr>
 <tr>
 <td colspan="3">
-  <div class="footer"><a href="http://code.google.com/p/wifikeyboard/">Source code available (license GPL v2).</a><br>Created by Ivan Volosyuk in 2010.</div>
-<td>
+  <div class="footer"><a href="http://code.google.com/p/wifikeyboard/">Source code available (license GPL v2).</a><br>Created by Ivan Volosyuk.</div>
+</td>
 </tr>
 </tbody>
 </table>
