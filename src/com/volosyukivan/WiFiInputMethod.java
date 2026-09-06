@@ -1,4 +1,3 @@
-
 /**
  * WiFi Keyboard - Remote Keyboard for Android.
  * Copyright (C) 2011 Ivan Volosyuk
@@ -94,6 +93,12 @@ public class WiFiInputMethod extends InputMethodService {
                             public String getText()
                                     throws RemoteException {
                                 return WiFiInputMethod.this.getText();
+                            }
+
+                            @Override
+                            public boolean commitText(String text)
+                                    throws RemoteException {
+                                return WiFiInputMethod.this.commitText(text);
                             }
                         };
 
@@ -858,6 +863,25 @@ public class WiFiInputMethod extends InputMethodService {
 
         } finally {
             conn.endBatchEdit();
+        }
+    }
+
+    boolean commitText(String text) {
+        InputConnection conn = getCurrentInputConnection();
+
+        if (conn == null) {
+            return false;
+        }
+
+        if (text == null || text.length() == 0) {
+            return true;
+        }
+
+        try {
+            return conn.commitText(text, 1);
+        } catch (Throwable t) {
+            Log.w(TAG, "Unable to commit remote text", t);
+            return false;
         }
     }
 
