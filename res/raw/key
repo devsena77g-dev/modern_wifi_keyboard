@@ -18,13 +18,6 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  -->
 <head>
-  <!-- Todo list:
-     - Latency display enable.
-     - Support for Chinese input method, need to figure out how to deal with it
-     - TextField mode
-     - 
-
-    -->
   <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
   <title>WiFi Keyboard</title>
   <script language="JavaScript">
@@ -36,11 +29,9 @@
        catch (e) {}
        try { return new ActiveXObject("Msxml2.XMLHTTP"); }
        catch (e) {}
-       //Microsoft.XMLHTTP points to Msxml2.XMLHTTP.3.0 and is redundant
        throw new Error("This browser does not support XMLHttpRequest.");
    };
 
-    // format: /seq,code,press/5012,32,1/
     ignore_next_char = false;
     repeat_key_code = "-1";
 
@@ -75,35 +66,12 @@
       ev = mode + code;
       events[seqPressed] = ev;
       seqPressed += 1
-//      var el = document.getElementById("keys");
-//      el.innerHTML = el.innerHTML + ' send:' + mode + code + " ";
     }
 
     function send(code, mode) {
       queue(code, mode);
       network();
     }
-
-    function makeNotificationListener() {
-      receiver = new XMLHttpRequest();
-      receiver.onreadystatechange = function() {
-	if (receiver.readyState != 4) return;
-        if (receiver.status != 200) {
-	  // FIXME: error handling
-	  setTimeout("makeNotificationListener();", 2000);
-	}
-        if (receiver.responseText != undefined) {
-          textarea = document.getElementById("text");
-	  textarea.value = receiver.responseText;
-	  textarea.focus();
-	}
-	makeNotificationListener();
-      }
-      receiver.open('GET', "/wait", true);
-      receiver.send(null);
-    }
-
-    // makeNotificationListener();
 
     function makeXhr() {
       var xhr = new XMLHttpRequest();
@@ -150,9 +118,6 @@
     function network() {
       if (seqConfirmed == seqPressed) return;
       if (num_inflight > 0) return;
-
-      //seq = seq + 1;
-      //if (data.length > 200) data = data.substring(0, 200);
 
       charsToTransmit = seqPressed - seqConfirmed;
       if (charsToTransmit > 100) charsToTransmit = 100;
@@ -220,7 +185,6 @@
         return;
       }
 
-      // if not paste and not chinese
       if (val.length <= typed_chars
         && val.charCodeAt(0) < 128) {
 	return;
@@ -241,11 +205,7 @@
     function down(e) {
       update_input();
       if (!e) e = window.event;
-      if (e.keyCode == 115) {
-        no_input();
-        recv_text();
-        return false;
-      }
+      // Bypassed F4 local toggle check so typing is instant
       return keyevent(e.keyCode, 'D');
     }
     function press(e) {
@@ -261,7 +221,6 @@
         ch = e.keyCode;
       }
 
-      // firefox and opera hack
       if (ch == 0 || ch == repeat_key_code) {
         send(repeat_key_code, 'D');
         return false;
@@ -270,7 +229,8 @@
       return false;
     }
     function focus_me() {
-      document.getElementById("in").focus();
+      var el = document.getElementById("in");
+      if (el) el.focus();
     }
 
     function setDisplayState(newState) {
@@ -302,97 +262,43 @@
       }
     }
 
-    function submit_text() {
-        var submitter = new XMLHttpRequest();
-        submitter.onreadystatechange = function() {
-  	  if (submitter.readyState != 4) return;
-            if (submitter.status != 200 || submitter.responseText != "ok") {
-  	    // FIXME: error handling
-  	    setTimeout("submit_text();", 2000);
-          } else {
-            document.getElementById('in').focus();
-            direct_input();
-  	  }
-        }
-        var params = document.getElementById("in").value;
-        submitter.open('POST', "/form", true);
-        submitter.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
-        submitter.setRequestHeader("Content-length", params.length);
-        submitter.send(params);
-      }
-
     function direct_input() {
         var x = document.getElementById("in");
+        if (!x) return;
         x.onkeydown = down;
         x.onkeyup = up;
         x.onkeypress = press;
+        
+        // Continuously lock focus so clicking away refocuses instantly
         window.onblur = function() {
             send(1024,'D');
             focus_me();
         }
         window.onfocus = focus_me;
         window.onmouseup = function() {
-            setTimeout('examine_input();', 10);
+            setTimeout('examine_input(); focus_me();', 10);
         };
         window.onmouseover = function() {
             setTimeout('examine_input();', 10);
         };
-        n = document.getElementById("in");
-        n.style.backgroundColor = "#f1f1ed";
-        n.value = "";
-        
+        x.style.backgroundColor = "#f1f1ed";
+        x.value = "";
     }
-
-    function no_input() {
-        document.getElementById("in").style.backgroundColor = "#f1e1cd";
-        var x = document.getElementById("in");
-        x.onkeydown = function(e) { return false; }
-        x.onkeypress = function() { return false; }
-        x.onkeyup = function() { return false; }
-        window.onblur = function() {}
-        window.onmouseup = function() {};
-        window.onmouseover = function() {};
-        
-    }
-
-    function local_input() {
-        document.getElementById("in").style.backgroundColor = "#FFFFFF";
-        var x = document.getElementById("in");
-        x.onkeydown = function(e) {
-            if (!e) e = window.event;
-            if (e.keyCode == 115) {
-                submit_text();
-                no_input();
-                return false;
-            }
-          return true;
-        }
-        x.onkeypress = function() { return true; }
-        x.onkeyup = function() { return true; }
-    }
-
-    function recv_text() {
-        var recvText = new XMLHttpRequest();
-        recvText.onreadystatechange = function() {
-  	  if (recvText.readyState != 4) return;
-            if (recvText.status != 200) {
-  	    // FIXME: error handling
-  	    setTimeout("recv_text();", 2000);
-          }
-          if (recvText.responseText != undefined) {
-              document.getElementById('in').value = recvText.responseText;
-              local_input();
-  	  }
-        }
-        recvText.open('GET', "/text", true);
-        recvText.send(null);
-    }
-    
 
     function loadFinished() {
       focus_me();
       send(1024, 'D');
       direct_input();
+      
+      // Force constant focus loop to avoid losing typing focus
+      setInterval(function() {
+          var activeEl = document.activeElement;
+          var inputEl = document.getElementById("in");
+          if (inputEl && activeEl !== inputEl) {
+              inputEl.focus();
+          }
+      }, 500);
+
       (function() {
     	     var wf = document.createElement('script');
     	     wf.src = ('https:' == document.location.protocol ? 'https' : 'http') +
@@ -488,7 +394,7 @@
   <li>F3 = Search</li>
   <li>Escape, F5 = BACK</li>
   <li>F9, F10 = Volume control</li>
-  <li><font color="red">F4 = Edit locally/ submit (alpha)</font></li>
+  <li><font color="green">F4 = Disabled (Instant Typing Active)</font></li>
   </ul>
   </td></tr></tbody></table>
 </td>
@@ -504,7 +410,7 @@
 </tr>
 <tr>
 <td colspan="3">
-  <h2>Android input (type or paste here):</h2>
+  <h2>Android input (type instantly here):</h2>
   <form method="post" action="/form">
       <input type="hidden" name="name" value="value">
       <textarea name="text" cols="100" rows="20" id="in"></textarea>
@@ -515,8 +421,6 @@
 <tr>
 <td colspan="3">
   <div class="footer"><a href="http://code.google.com/p/wifikeyboard/">Source code available (license GPL v2).</a><br>Created by Ivan Volosyuk in 2010.</div>
-<!-- <div id="keys">Debug: key presses:</div> -->
-<!-- <div id="debug">New event placeholder.</div> -->
 <td>
 </tr>
 </tbody>
