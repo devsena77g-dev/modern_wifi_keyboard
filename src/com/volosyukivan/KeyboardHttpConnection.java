@@ -34,6 +34,7 @@ public final class KeyboardHttpConnection extends HttpConnection {
   
   private static final byte[] Q_KEY = "key".getBytes();
   private static final byte[] Q_FORM = "form".getBytes();
+  private static final byte[] Q_INPUT = "input".getBytes();
   private static final byte[] Q_TEXT = "text".getBytes();
   private static final byte[] Q_WAIT = "wait".getBytes();
   private static final byte[] Q_DEFAULT = "".getBytes();
@@ -43,6 +44,7 @@ public final class KeyboardHttpConnection extends HttpConnection {
   private static final byte[][] patterns = {
     Q_KEY,
     Q_FORM,
+    Q_INPUT,
     Q_TEXT,
     Q_WAIT,
     Q_DEFAULT,
@@ -52,11 +54,12 @@ public final class KeyboardHttpConnection extends HttpConnection {
   
   private static final int H_KEY = 0;
   private static final int H_FORM = 1;
-  private static final int H_TEXT = 2;
-  private static final int H_WAIT = 3;
-  private static final int H_DEFAULT = 4;
-  private static final int H_BG_GIF = 5;
-  private static final int H_ICON_PNG = 6;
+  private static final int H_INPUT = 2;
+  private static final int H_TEXT = 3;
+  private static final int H_WAIT = 4;
+  private static final int H_DEFAULT = 5;
+  private static final int H_BG_GIF = 6;
+  private static final int H_ICON_PNG = 7;
   
   private int requestType;
   
@@ -162,6 +165,7 @@ public final class KeyboardHttpConnection extends HttpConnection {
     case H_KEY: return onKeyRequest();
     case H_TEXT: return onTextRequest();
     case H_FORM: return onFormRequest();
+    case H_INPUT: return onInputRequest();
     case H_DEFAULT: return onDefaultRequest();
     case H_BG_GIF: return onBgGifRequest();
     case H_ICON_PNG: return onIconPngRequest();
@@ -196,6 +200,21 @@ public final class KeyboardHttpConnection extends HttpConnection {
     // FIXME: use cached value
     byte[] resp = (success ? "ok" : "fail").getBytes(java.nio.charset.StandardCharsets.UTF_8);
     return sendData("text/plain; charset=UTF-8", resp, resp.length);
+  }
+
+  private ByteBuffer onInputRequest() {
+    String text = new String(
+        formData, 0, formDataLength,
+        java.nio.charset.StandardCharsets.UTF_8);
+
+    boolean success = server.commitText(text);
+    byte[] resp = (success ? "ok" : "fail")
+        .getBytes(java.nio.charset.StandardCharsets.UTF_8);
+
+    return sendData(
+        "text/plain; charset=UTF-8",
+        resp,
+        resp.length);
   }
 
   private ByteBuffer onTextRequest() {
