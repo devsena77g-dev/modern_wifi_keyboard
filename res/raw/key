@@ -206,31 +206,80 @@
       typed_chars++;
     }
 
-    function examine_input() {
-      if (inp == null) {
-        inp = document.getElementById("in");
-      }
-      if (inp == null) {
-        typed_chars = 0;
-        return;
-      }
-      var val = inp.value;
-      if (val.length == 0) {
-	typed_chars = 0;
-        return;
+    // Send actual text inserted into the browser field directly to Android.
+    // Normal printable keys are allowed to update the textarea; the input
+    // event then sends the resulting text to /input. This also handles paste.
+    var text_send_inflight = false;
+    var text_send_pending = "";
+    var text_send_timer = null;
+
+    function send_input_text(text) {
+      if (text && text.length > 0) {
+        text_send_pending += text;
       }
 
-      // if not paste and not chinese
-      if (val.length <= typed_chars
-        && val.charCodeAt(0) < 128) {
-	return;
+      if (text_send_pending.length == 0) return;
+
+      if (text_send_timer != null) return;
+
+      // A tiny debounce combines fast typing into a small number of requests.
+      text_send_timer = setTimeout(function() {
+        text_send_timer = null;
+
+        if (text_send_inflight) return;
+
+        var payload = text_send_pending;
+        text_send_pending = "";
+
+        text_send_inflight = true;
+
+        var xhr = new XMLHttpRequest();
+        xhr.onreadystatechange = function() {
+          if (xhr.readyState != 4) return;
+
+          text_send_inflight = false;
+
+          if (xhr.status != 200 || xhr.responseText != "ok") {
+            text_send_pending = payload + text_send_pending;
+            setDisplayState("failure");
+            if (text_send_timer == null) {
+              text_send_timer = setTimeout(function() {
+                text_send_timer = null;
+                send_input_text("");
+              }, 100);
+            }
+            return;
+          }
+
+          setDisplayState("connected");
+
+          if (text_send_pending.length > 0 && text_send_timer == null) {
+            text_send_timer = setTimeout(function() {
+              text_send_timer = null;
+              send_input_text("");
+            }, 0);
+          }
+        };
+
+        xhr.open('POST', "/input", true);
+        xhr.setRequestHeader("Content-Type", "text/plain; charset=UTF-8");
+        xhr.send(payload);
+      }, 20);
+    }
+
+    function input_changed(e) {
+      if (!inp) inp = document.getElementById("in");
+      if (!inp) return;
+
+      var value = inp.value;
+
+      // Direct mode clears the browser field after successfully queuing
+      // its contents. Since only newly inserted text should be transmitted,
+      // send the current value and clear it immediately.
+      if (value.length > 0) {
+        inp.value = "";
+        send_input_text(value);
       }
-      for (i = 0; i < val.length; i++) {
-        queue(val.charCodeAt(i), 'C');
-      }
-      typed_chars = 0;
-      inp.value = "";
-      network();
     }
 
     function up(e) {
@@ -239,36 +288,39 @@
       return keyevent(e.keyCode, 'U');
     }
     function down(e) {
-      update_input();
       if (!e) e = window.event;
+
+      // F4 is no longer a submit/commit key in direct mode.
       if (e.keyCode == 115) {
-        no_input();
-        recv_text();
         return false;
-      }
-      return keyevent(e.keyCode, 'D');
-    }
-    function press(e) {
-      if (ignore_next_char) {
-         ignore_next_char = false;
-         return false;
-      }
-      if (compat()) return false;
-      if (!e) e = window.event;
-      if (e.charCode != undefined) {
-        ch = e.charCode;
-      } else {
-        ch = e.keyCode;
       }
 
-      // firefox and opera hack
-      if (ch == 0 || ch == repeat_key_code) {
-        send(repeat_key_code, 'D');
-        return false;
+      // Let normal printable keys reach the textarea. The input event
+      // transmits the resulting text through /input.
+      if (!is_special(e.keyCode)) {
+        ignore_next_char = false;
+        return true;
       }
-      send(ch, 'C');
-      return false;
+
+      return keyevent(e.keyCode, 'D');
     }
+
+    function up(e) {
+      if (!e) e = window.event;
+
+      if (!is_special(e.keyCode)) {
+        return true;
+      }
+
+      return keyevent(e.keyCode, 'U');
+    }
+
+    function press(e) {
+      // Printable characters are handled by the browser's normal text
+      // insertion and captured by the input event.
+      return true;
+    }
+
     function focus_me() {
       document.getElementById("in").focus();
     }
@@ -322,25 +374,23 @@
       }
 
     function direct_input() {
-        var x = document.getElementById("in");
-        x.onkeydown = down;
-        x.onkeyup = up;
-        x.onkeypress = press;
-        window.onblur = function() {
-            send(1024,'D');
-            focus_me();
-        }
-        window.onfocus = focus_me;
-        window.onmouseup = function() {
-            setTimeout('examine_input();', 10);
-        };
-        window.onmouseover = function() {
-            setTimeout('examine_input();', 10);
-        };
-        n = document.getElementById("in");
-        n.style.backgroundColor = "#f1f1ed";
-        n.value = "";
-        
+      var x = document.getElementById("in");
+
+      x.onkeydown = down;
+      x.onkeyup = up;
+      x.onkeypress = press;
+      x.oninput = input_changed;
+
+      window.onblur = function() {
+        send(1024, 'D');
+        focus_me();
+      };
+
+      window.onfocus = focus_me;
+
+      n = document.getElementById("in");
+      n.style.backgroundColor = "#f1f1ed";
+      n.value = "";
     }
 
     function no_input() {
@@ -488,7 +538,7 @@
   <li>F3 = Search</li>
   <li>Escape, F5 = BACK</li>
   <li>F9, F10 = Volume control</li>
-  <li><font color="red">F4 = Edit locally/ submit (alpha)</font></li>
+  <li><font color="green">Text is sent directly; F4 is no longer required.</font></li>
   </ul>
   </td></tr></tbody></table>
 </td>
